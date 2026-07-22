@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Continuity System</title>
+<meta name="description" content="A drop-in instruction that keeps any AI project resumable and accurate across long runs, new chat threads, and different tools.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💾</text></svg>">
+<style>
+  :root{
+    --paper:#eef1ec; --paper-2:#e4e8e0; --raise:#f6f8f4;
+    --ink:#182420; --ink-soft:#4c5a53; --ink-faint:#75837b;
+    --line:#d3d9cf; --line-strong:#c2cabd;
+    --accent:#b56a24; --accent-ink:#8f5217; --accent-soft:rgba(181,106,36,.12);
+    --teal:#2c5a52;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --wrap:44rem;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0f1513; --paper-2:#161e1b; --raise:#141c19;
+      --ink:#e8ebe4; --ink-soft:#9daaa2; --ink-faint:#77857c;
+      --line:#25302b; --line-strong:#2f3c36;
+      --accent:#e0913e; --accent-ink:#e6a458; --accent-soft:rgba(224,145,62,.16);
+      --teal:#6fb3a6;
+    }
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{background:var(--paper); color:var(--ink); font-family:var(--font-sans);
+    line-height:1.6; -webkit-font-smoothing:antialiased; margin:0;}
+  main{max-width:var(--wrap); margin:0 auto; padding:clamp(1.4rem,4vw,3rem) 1.3rem 4rem;}
+  h1,h2,h3{text-wrap:balance; line-height:1.15; margin:0;}
+  p{margin:0;}
+
+  .eyebrow, .kicker{font-family:var(--font-mono); font-size:.72rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent-ink); margin:0 0 .9rem;}
+  .kicker{color:var(--ink-faint);}
+
+  .hero{padding:1rem 0 2.4rem; border-bottom:1px solid var(--line);}
+  h1{font-size:clamp(2.1rem,6vw,3.3rem); font-weight:800; letter-spacing:-.02em;}
+  .lede{margin-top:1rem; font-size:clamp(1.05rem,2.4vw,1.28rem); color:var(--ink-soft); max-width:34rem;}
+  .thesis{display:inline-flex; align-items:center; gap:.6rem; margin-top:1.7rem;
+    padding:.55rem .95rem; border:1px solid var(--line-strong); border-radius:2px;
+    background:var(--raise); font-family:var(--font-mono); font-size:.9rem;}
+  .thesis-text{color:var(--ink);}
+  .dot{width:.62rem; height:.62rem; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 0 0 var(--accent-soft); animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--accent-soft);}70%{box-shadow:0 0 0 .5rem transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+  @media (prefers-reduced-motion:reduce){.dot{animation:none;}}
+
+  .block{padding:2.6rem 0; border-bottom:1px solid var(--line);}
+  .block h2{font-size:clamp(1.35rem,3.4vw,1.7rem); font-weight:750; letter-spacing:-.01em;}
+  .sub{color:var(--ink-soft); margin-top:.7rem; max-width:36rem;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.5rem;}
+  @media (max-width:560px){.grid-2{grid-template-columns:1fr;}}
+
+  .card{background:var(--raise); border:1px solid var(--line); border-radius:3px; padding:1.15rem 1.2rem;}
+  .card h3{font-size:1.08rem; margin-top:.5rem;}
+  .card p{color:var(--ink-soft); margin-top:.45rem; font-size:.96rem;}
+  .tag{font-family:var(--font-mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-ink);}
+  .fix{margin-top:1.5rem; padding-left:1rem; border-left:3px solid var(--accent); color:var(--ink);}
+
+  .files{display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:1.5rem;}
+  @media (max-width:680px){.files{grid-template-columns:1fr;}}
+  .file-card{background:var(--raise); border:1px solid var(--line); border-radius:3px; padding:1.1rem 1.15rem; border-top:3px solid var(--teal);}
+  .file-head{display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap;}
+  .fname{font-family:var(--font-mono); font-weight:600; font-size:.98rem; color:var(--ink);}
+  .file-card p{color:var(--ink-soft); font-size:.93rem; margin-top:.6rem;}
+  .protects{color:var(--ink); font-size:.86rem !important; margin-top:.8rem !important; padding-top:.6rem; border-top:1px dashed var(--line-strong);}
+  .pill{font-family:var(--font-mono); font-size:.66rem; letter-spacing:.06em; text-transform:uppercase;
+    padding:.2rem .45rem; border-radius:2px; background:var(--accent-soft); color:var(--accent-ink); white-space:nowrap;}
+
+  .preview{margin-top:1.6rem; border:1px solid var(--line); border-radius:3px; background:var(--raise);}
+  .preview summary{cursor:pointer; padding:.8rem 1rem; font-family:var(--font-mono); font-size:.82rem; letter-spacing:.03em; color:var(--accent-ink); list-style:none;}
+  .preview summary::-webkit-details-marker{display:none;}
+  .preview summary::before{content:"▸ "; color:var(--ink-faint);}
+  .preview[open] summary::before{content:"▾ ";}
+  .code-scroll{overflow-x:auto; margin:0; padding:1rem 1.1rem; border-top:1px solid var(--line);
+    font-family:var(--font-mono); font-size:.78rem; line-height:1.55; color:var(--ink-soft); max-height:24rem; overflow-y:auto; white-space:pre;}
+
+  .dl-primary{display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1.7rem;}
+  .paths{margin-top:1.4rem;}
+  .path{background:var(--raise); border:1px solid var(--line); border-radius:3px; padding:1.3rem 1.25rem; display:flex; flex-direction:column; gap:.6rem;}
+  .path h3{font-size:1.15rem;}
+  .path-note{color:var(--ink-soft); font-size:.9rem; margin-bottom:.2rem;}
+  .mono-inline{font-family:var(--font-mono); font-size:.86em; background:var(--accent-soft); color:var(--accent-ink); padding:.08rem .32rem; border-radius:2px;}
+
+  .btn{font:inherit; cursor:pointer; border-radius:3px; padding:.7rem 1rem; border:1px solid var(--line-strong);
+    background:var(--paper-2); color:var(--ink); transition:transform .08s ease, background .15s ease, border-color .15s ease; text-align:center;}
+  .btn:hover{border-color:var(--accent);}
+  .btn:active{transform:translateY(1px);}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:650;}
+  @media (prefers-color-scheme:dark){.btn.primary{color:#160f06;}}
+  .btn.primary:hover{filter:brightness(1.05);}
+  .btn.ghost{background:transparent;}
+  .btn.big{padding:.85rem 1.3rem; font-size:1.02rem;}
+  .btn.mini{padding:.5rem .8rem; font-size:.85rem; font-family:var(--font-mono);}
+  a.btn{display:inline-block; text-decoration:none;}
+
+  .plainchat{margin-top:1.6rem; padding:1.2rem 1.25rem; border:1px dashed var(--line-strong); border-radius:3px; background:var(--raise);}
+  .plainchat h3{font-size:1.02rem;}
+  .plainchat p{color:var(--ink-soft); font-size:.94rem; margin:.5rem 0 .9rem;}
+  .status{font-family:var(--font-mono); font-size:.78rem; color:var(--teal); margin-left:.6rem;}
+
+  .individual{margin-top:1.4rem;}
+  .individual summary{cursor:pointer; font-family:var(--font-mono); font-size:.82rem; color:var(--accent-ink); list-style:none;}
+  .individual summary::-webkit-details-marker{display:none;}
+  .individual summary::before{content:"▸ "; color:var(--ink-faint);}
+  .individual[open] summary::before{content:"▾ ";}
+  .dl-row{display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1rem;}
+  .opt-note{color:var(--ink-soft); font-size:.9rem; margin-top:.8rem;}
+
+  .resume{display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-top:1.2rem;
+    background:var(--ink); color:var(--paper); border-radius:3px; padding:1rem 1.1rem;}
+  @media (prefers-color-scheme:dark){.resume{background:#060a09;}}
+  .resume code{font-family:var(--font-mono); font-size:.86rem; line-height:1.5; color:#f2f4ee; flex:1 1 16rem;}
+  .resume .btn.mini{background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); color:#f2f4ee;}
+  .resume .status{color:var(--accent-ink);}
+
+  .foot{padding-top:2.6rem; text-align:center;}
+  .rule{font-family:var(--font-mono); font-size:.95rem; color:var(--accent-ink); letter-spacing:.02em;}
+  .by{margin-top:.7rem; color:var(--ink-faint); font-size:.85rem; letter-spacing:.02em;}
+  .foot a{color:var(--teal);}
+</style>
+</head>
+<body>
+
+<!-- ============ FILE SOURCES (used to build downloads) ============ -->
+<script type="text/plain" id="src-master">
+# THE CONTINUITY SYSTEM — Operating Protocol
+
+You are working on a project that may span many sessions, long unattended runs, new chat threads, and possibly different AI tools. Your job is not only to do the work, but to make the work **resumable and accurate** at any moment, by anyone, in any thread.
+
+Follow this protocol for the entire life of the project, without being reminded.
+
+---
+
+## THE CORE PRINCIPLE
+
+**The conversation is disposable. The files are the memory.**
+
+Chat history gets summarized and compressed as it grows long, and summaries silently lose detail, reasoning, and decisions. Therefore: **anything that must survive lives in a file, never only in the chat.** When in doubt, write it to a file.
+
+You treat the running conversation as scaffolding. You treat the files below as the single source of truth. When resuming, you re-ground yourself from the files, not from your memory of the chat.
+
+---
+
+## THE FILES YOU MAINTAIN
+
+Keep these in the project root (or a `/continuity` subfolder if the user prefers). Create them if they do not exist.
+
+### 1. `PROJECT.md` — the north star (changes rarely)
+The stable definition of the project. Contains:
+- **Goal** — what we are building and why, in plain language.
+- **Scope** — what is in, and explicitly what is out.
+- **Success criteria** — how we know it is done and good.
+- **Constraints & rules** — hard requirements, preferences, brand/voice rules, technical limits, deadlines.
+- **Key terms / glossary** — names, acronyms, or shorthand a fresh reader would not know.
+- **Where things live** — paths, links, accounts, or assets that are the real source of truth (never paraphrase these; point to them).
+
+### 2. `STATE.md` — the bookmark (changes constantly)
+The live snapshot of where we are right now. Contains:
+- **Current phase / focus** — the one thing being worked on now.
+- **Last completed step** — the last thing actually finished.
+- **NEXT ACTION** — the single, literal next thing to do. Specific enough to act on with zero re-explanation.
+- **Blockers / open questions** — anything waiting on the user or unresolved.
+- **Recent activity** — a short running list of what got done this session (newest first).
+
+### 3. `DECISIONS.md` — the memory of *why* (append-only, never rewritten)
+The log that protects against fidelity loss. Every time a real decision is made, append an entry:
+```
+- [YYYY-MM-DD] DECISION: <what was decided>.
+  WHY: <the reasoning>.
+  REJECTED: <what was considered and turned down, and why> (if any).
+```
+This is the highest-value file, because "we chose X because Y, and avoided Z" is exactly the nuance a summary flattens or drops. Never delete or overwrite entries. Correct a past decision by adding a new dated entry that supersedes it.
+
+> Optional: for large or fast-moving projects, also keep `WORKLOG.md` as a longer dated journal of what happened each session. `STATE.md`'s "Recent activity" is the short version; `WORKLOG.md` is the full history.
+
+---
+
+## YOUR RULES
+
+**Write durable, not disposable.** The moment a decision is made, a constraint is discovered, or a fact is established, put it in the right file immediately. Do not let it live only in chat where a compaction can erase it.
+
+**Update `STATE.md` continuously.** Refresh it after each meaningful step, whenever the context is getting long, and always before you stop or hand off. `STATE.md` should always be accurate enough that a stranger could take over from it.
+
+**Checkpoint the actual work, not just the plan.** At each milestone, save the real work product to disk (the draft, the code, the document, the asset). If planning context is ever lost, the finished work is still safe on disk and the next step can be re-derived by looking at what exists.
+
+**Point to sources, never paraphrase them.** If a spec, requirement, or rule already exists in a file or asset, reference its location rather than restating it from memory. Restated facts drift; referenced facts do not.
+
+**Re-ground from files, not from memory.** Before continuing work — especially in a new thread or after a long gap — read the files and trust them over your recollection of the conversation.
+
+---
+
+## FIRST RUN — BOOTSTRAP
+
+When the user says to set up the continuity system (or when these files do not yet exist):
+
+1. Ask only the few questions needed to fill `PROJECT.md` well: goal, scope, key constraints/rules, and where the real source materials live. Keep it short; infer what you reasonably can.
+2. Create `PROJECT.md`, `STATE.md`, and `DECISIONS.md` from the answers.
+3. Confirm in one line: *"Continuity system set up. PROJECT / STATE / DECISIONS created. Ready to work."*
+4. Begin work, updating the files as you go per the rules above.
+
+---
+
+## RESUMING WORK — EVERY NEW THREAD OR SESSION
+
+Before doing anything else:
+1. Read `PROJECT.md`, then `STATE.md`, then `DECISIONS.md` (in that order).
+2. Confirm in one line: *"Resuming: <current phase>. Next action: <literal next step from STATE.md>."*
+3. Continue. Do not re-derive or re-ask what the files already answer.
+
+---
+
+## HANDING OFF — ENDING A THREAD CLEANLY
+
+When a thread is getting long, before context is exhausted, or whenever the user is about to step away:
+1. Make sure `STATE.md` is fully current — especially the **NEXT ACTION**.
+2. Make sure any decisions made this session are in `DECISIONS.md`.
+3. Make sure any work product is saved to disk.
+4. Tell the user: *"Safe to continue in a new thread. Say: 'Read PROJECT.md, STATE.md, and DECISIONS.md, then continue from the next action.'"*
+
+This makes the handoff loss-proof: the new thread starts near-empty and rebuilds full context from the files, with no degraded summary in between.
+
+---
+
+## BIG PROJECTS — WORK IN PHASES
+
+For long or multi-part projects, do not let one thread accumulate endlessly (each round of compaction degrades fidelity a little more). Instead:
+1. Break the project into phases in `PROJECT.md`.
+2. Finish a phase, write its outcomes to the files, and checkpoint its work product to disk.
+3. Start the next phase in a **fresh thread**, resuming from the files.
+
+Each phase begins with near-zero degradation, so quality stays high no matter how large the project grows.
+
+---
+
+## IF YOU HIT THE WALL
+
+If context runs out or gets dangerously full: your protection is already in place, because the files are current. Instruct the user to start a new thread and resume from the files. Never rely on the conversation itself to carry the project forward.
+
+---
+
+**Summary of the whole system:** Do the work in the chat. Keep the memory in the files. `PROJECT.md` protects *what and why*. `STATE.md` protects *where we are*. `DECISIONS.md` protects *why we chose what we chose*. Keep all three current, and the project can never be lost, drifted, or forgotten — no matter how long it runs or how many threads it takes.
+</script>
+
+<script type="text/plain" id="src-readme">
+# The Continuity System — Start Here
+
+This kit keeps any AI project resumable and accurate, even across long work, new chat threads, or a different AI tool. It stops the two things that quietly wreck long projects:
+
+1. Hitting the wall — the AI runs out of room and stalls mid-task.
+2. Fidelity loss — the AI "summarizes" the conversation to save room and silently drops details, decisions, or reasoning.
+
+The fix is simple: important information lives in files, not in the chat. This kit sets that up automatically.
+
+## What you do (the whole job)
+
+Pick the file named for your tool and drop it into your project folder. Nothing to rename.
+
+- Claude (Claude Code / Cowork): use CLAUDE.md
+- Codex or other AI coding tools: use AGENTS.md
+- Plain chat (Claude.ai, ChatGPT): paste the instruction as your first message
+
+Then say: "Set up the continuity system for this project."
+
+That is it. From then on the AI keeps everything current on its own.
+
+## What it creates for you
+
+Three small files that become your project's permanent memory:
+
+- PROJECT.md — the goal, scope, and rules (the north star)
+- STATE.md — where you are and the exact next step (the bookmark)
+- DECISIONS.md — every real decision and why (the memory of why)
+
+Blank starter versions are in the templates folder.
+
+## How to pick work back up
+
+Open a new thread any time and say:
+
+"Read PROJECT.md, STATE.md, and DECISIONS.md, then continue from the next action."
+
+The AI reloads the full picture from the files, not from a faded summary, and keeps going. No re-explaining.
+
+## The one rule to remember
+
+If it matters, it goes in a file. Everything else is just conversation, and conversation is disposable.
+</script>
+
+<script type="text/plain" id="src-project">
+# PROJECT — <project name>
+
+> The north star. This changes rarely. It defines what we are building and the rules of the game.
+
+## Goal
+<What we are building and why, in plain language.>
+
+## Scope
+**In scope:**
+- <...>
+
+**Out of scope:**
+- <...>
+
+## Success criteria
+- <How we know it is done and good.>
+
+## Constraints & rules
+- <Hard requirements, deadlines, brand/voice rules, technical limits, preferences.>
+
+## Key terms / glossary
+- **<term>** — <what it means, for a fresh reader.>
+
+## Where things live (source of truth)
+- <Paths, links, accounts, or assets that ARE the real source. Point here; do not paraphrase.>
+
+## Phases (for larger projects)
+1. <Phase 1> — <goal>
+2. <Phase 2> — <goal>
+</script>
+
+<script type="text/plain" id="src-state">
+# STATE — <project name>
+
+> The bookmark. This changes constantly. It should always be accurate enough for a stranger to take over.
+
+## Current phase / focus
+<The one thing being worked on right now.>
+
+## Last completed step
+<The last thing actually finished.>
+
+## NEXT ACTION
+<The single, literal next thing to do. Specific enough to act on with zero re-explanation.>
+
+## Blockers / open questions
+- <Anything waiting on the user or unresolved. "None" if clear.>
+
+## Recent activity (newest first)
+- [YYYY-MM-DD] <what got done>
+</script>
+
+<script type="text/plain" id="src-decisions">
+# DECISIONS — <project name>
+
+> The memory of why. Append-only. Never rewrite or delete an entry. To change a past decision, add a new dated entry that supersedes it.
+>
+> This is the file that protects against fidelity loss — the "we chose X because Y, and rejected Z" nuance that summaries flatten or drop.
+
+- [YYYY-MM-DD] DECISION: <what was decided>.
+  WHY: <the reasoning>.
+  REJECTED: <what was considered and turned down, and why> (if any).
+</script>
+
+<!-- ============================= PAGE ============================= -->
+<main>
+  <header class="hero">
+    <p class="eyebrow">Operating Protocol · For any AI project</p>
+    <h1>The Continuity System</h1>
+    <p class="lede">A drop-in instruction that keeps any AI project <strong>resumable and accurate</strong> — across long runs, new chat threads, or a switch to a different tool.</p>
+    <div class="thesis" role="note">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="thesis-text">If it matters, it goes in a file.</span>
+    </div>
+  </header>
+
+  <section class="block">
+    <p class="kicker">The problem it solves</p>
+    <h2>Long projects lose their memory in two ways</h2>
+    <div class="grid-2">
+      <article class="card fail">
+        <span class="tag">Failure 1</span>
+        <h3>Hitting the wall</h3>
+        <p>The AI runs out of context room and stalls mid-task, right when you've stepped away and can't intervene.</p>
+      </article>
+      <article class="card fail">
+        <span class="tag">Failure 2</span>
+        <h3>Fidelity loss</h3>
+        <p>To save room, the AI compresses the conversation into a summary — and quietly drops details, decisions, and the <em>reasoning</em> behind them.</p>
+      </article>
+    </div>
+    <p class="fix">The fix isn't a smarter summary. It's moving what matters <strong>out of the conversation and into files</strong> that compression can't touch. This protocol makes the AI do that automatically.</p>
+  </section>
+
+  <section class="block">
+    <p class="kicker">How it works</p>
+    <h2>Three small files become the project's permanent memory</h2>
+    <div class="files">
+      <article class="file-card">
+        <div class="file-head"><span class="fname">PROJECT.md</span><span class="pill north">north star</span></div>
+        <p>The goal, scope, rules, and where the real source materials live. Changes rarely.</p>
+        <p class="protects">Protects <strong>what &amp; why</strong></p>
+      </article>
+      <article class="file-card">
+        <div class="file-head"><span class="fname">STATE.md</span><span class="pill book">bookmark</span></div>
+        <p>Where we are right now and the single, literal next step. Updated constantly.</p>
+        <p class="protects">Protects <strong>where we are</strong></p>
+      </article>
+      <article class="file-card">
+        <div class="file-head"><span class="fname">DECISIONS.md</span><span class="pill why">memory of why</span></div>
+        <p>Every real decision, the reasoning, and what was rejected. Append-only, never rewritten.</p>
+        <p class="protects">Protects <strong>why we chose what we chose</strong></p>
+      </article>
+    </div>
+    <details class="preview">
+      <summary>Peek inside the instruction file</summary>
+      <pre id="preview-master" class="code-scroll"></pre>
+    </details>
+  </section>
+
+  <section class="block get">
+    <p class="kicker">Get the kit</p>
+    <h2>Download it — pick your tool, nothing to rename</h2>
+    <p class="sub">One instruction runs the whole system. Download the file named for your tool, drop it into your project, and say <span class="mono-inline">"Set up the continuity system for this project."</span> The AI then creates and maintains the tracking files <strong>by itself</strong>.</p>
+
+    <div class="dl-primary">
+      <button class="btn primary big" id="dl-zip">Download the whole kit (.zip)</button>
+      <a class="btn ghost" href="https://github.com/jennmagic/continuity-system" target="_blank" rel="noopener noreferrer">View source on GitHub &#8599;</a>
+    </div>
+
+    <div class="grid-2 paths">
+      <div class="path">
+        <h3>Using Claude</h3>
+        <p class="path-note">Save as <span class="mono-inline">CLAUDE.md</span> in your project (or add it to your existing one). Claude reads it automatically.</p>
+        <button class="btn primary dlbtn" data-name="CLAUDE.md" data-src="master">Download CLAUDE.md</button>
+        <button class="btn ghost copybtn" data-src="master" data-status="s-claude">Copy instead</button>
+        <span class="status" id="s-claude" aria-live="polite"></span>
+      </div>
+      <div class="path">
+        <h3>Using Codex</h3>
+        <p class="path-note">Save as <span class="mono-inline">AGENTS.md</span> in your project. Codex reads it automatically.</p>
+        <button class="btn primary dlbtn" data-name="AGENTS.md" data-src="master">Download AGENTS.md</button>
+        <button class="btn ghost copybtn" data-src="master" data-status="s-codex">Copy instead</button>
+        <span class="status" id="s-codex" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="plainchat">
+      <h3>Using plain chat instead?</h3>
+      <p>For Claude.ai, ChatGPT, or any chat window, paste the instruction as your very first message, then describe your project.</p>
+      <button class="btn ghost copybtn" data-src="master" data-status="s-plain">Copy the instruction</button>
+      <span class="status" id="s-plain" aria-live="polite"></span>
+    </div>
+
+    <details class="individual">
+      <summary>Optional: the blank starter files</summary>
+      <p class="opt-note">You do not need these. The AI creates <span class="mono-inline">PROJECT.md</span>, <span class="mono-inline">STATE.md</span>, and <span class="mono-inline">DECISIONS.md</span> for you on first run. They are here only if you like to pre-place empty versions yourself.</p>
+      <div class="dl-row">
+        <button class="btn mini dlbtn" data-name="PROJECT.md" data-src="project">PROJECT.md</button>
+        <button class="btn mini dlbtn" data-name="STATE.md" data-src="state">STATE.md</button>
+        <button class="btn mini dlbtn" data-name="DECISIONS.md" data-src="decisions">DECISIONS.md</button>
+        <button class="btn mini dlbtn" data-name="README.md" data-src="readme">README.md</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="block payoff">
+    <p class="kicker">The payoff</p>
+    <h2>Pick work back up in any new thread</h2>
+    <p class="sub">When a thread gets long or you start fresh tomorrow, open a new one and paste this:</p>
+    <div class="resume">
+      <code id="resume-line">Read PROJECT.md, STATE.md, and DECISIONS.md, then continue from the next action.</code>
+      <button class="btn mini" id="copy-resume">Copy</button>
+      <span class="status" id="copy-resume-status" aria-live="polite"></span>
+    </div>
+    <p class="sub">The AI rebuilds the full picture from the files — not a faded summary — and keeps going. No re-explaining, nothing lost.</p>
+  </section>
+
+  <footer class="foot">
+    <p class="rule">If it matters, it goes in a file.</p>
+    <p class="by">Shared by Jenn · <a href="https://github.com/jennmagic/continuity-system" target="_blank" rel="noopener noreferrer">source on GitHub</a></p>
+  </footer>
+</main>
+
+<script>
+  (function(){
+    function src(id){
+      var el=document.getElementById(id);
+      return (el ? el.textContent : "").replace(/^\n/,"");
+    }
+    var SRC={
+      master:src("src-master"), readme:src("src-readme"), project:src("src-project"),
+      state:src("src-state"), decisions:src("src-decisions")
+    };
+
+    var pv=document.getElementById("preview-master");
+    if(pv) pv.textContent=SRC.master;
+
+    // ---- download helpers ----
+    function download(filename, blob){
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement("a");
+      a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1200);
+    }
+    function downloadText(name, text){
+      download(name, new Blob([text], {type:"text/markdown;charset=utf-8"}));
+    }
+
+    // ---- minimal store-method ZIP ----
+    var crcTable=(function(){var t=[],c,n,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++){c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);}t[n]=c>>>0;}return t;})();
+    function crc32(bytes){var crc=0xFFFFFFFF;for(var i=0;i<bytes.length;i++){crc=(crc>>>8)^crcTable[(crc^bytes[i])&0xFF];}return (crc^0xFFFFFFFF)>>>0;}
+    function u16(a,v){a.push(v&0xFF,(v>>>8)&0xFF);}
+    function u32(a,v){a.push(v&0xFF,(v>>>8)&0xFF,(v>>>16)&0xFF,(v>>>24)&0xFF);}
+    function makeZip(files){
+      var enc=new TextEncoder(), out=[], central=[], offset=0, i;
+      var dosTime=0, dosDate=0x0021;
+      for(var f=0; f<files.length; f++){
+        var nameB=Array.from(enc.encode(files[f].name));
+        var dataB=Array.from(enc.encode(files[f].content));
+        var crc=crc32(dataB);
+        var local=[];
+        u32(local,0x04034b50); u16(local,20); u16(local,0x0800); u16(local,0);
+        u16(local,dosTime); u16(local,dosDate); u32(local,crc);
+        u32(local,dataB.length); u32(local,dataB.length); u16(local,nameB.length); u16(local,0);
+        for(i=0;i<nameB.length;i++) local.push(nameB[i]);
+        var headerOffset=offset;
+        for(i=0;i<local.length;i++) out.push(local[i]);
+        for(i=0;i<dataB.length;i++) out.push(dataB[i]);
+        offset+=local.length+dataB.length;
+        u32(central,0x02014b50); u16(central,20); u16(central,20); u16(central,0x0800); u16(central,0);
+        u16(central,dosTime); u16(central,dosDate); u32(central,crc);
+        u32(central,dataB.length); u32(central,dataB.length); u16(central,nameB.length);
+        u16(central,0); u16(central,0); u16(central,0); u16(central,0); u32(central,0); u32(central,headerOffset);
+        for(i=0;i<nameB.length;i++) central.push(nameB[i]);
+      }
+      var centralOffset=offset;
+      for(i=0;i<central.length;i++) out.push(central[i]);
+      var eocd=[];
+      u32(eocd,0x06054b50); u16(eocd,0); u16(eocd,0); u16(eocd,files.length); u16(eocd,files.length);
+      u32(eocd,central.length); u32(eocd,centralOffset); u16(eocd,0);
+      for(i=0;i<eocd.length;i++) out.push(eocd[i]);
+      return new Uint8Array(out);
+    }
+    function kitFiles(){
+      return [
+        {name:"CLAUDE.md", content:SRC.master},
+        {name:"AGENTS.md", content:SRC.master},
+        {name:"CONTINUITY-SYSTEM.md", content:SRC.master},
+        {name:"README.md", content:SRC.readme},
+        {name:"templates/PROJECT.md", content:SRC.project},
+        {name:"templates/STATE.md", content:SRC.state},
+        {name:"templates/DECISIONS.md", content:SRC.decisions}
+      ];
+    }
+
+    var zipBtn=document.getElementById("dl-zip");
+    if(zipBtn) zipBtn.addEventListener("click", function(){
+      download("continuity-system-kit.zip", new Blob([makeZip(kitFiles())], {type:"application/zip"}));
+    });
+
+    document.querySelectorAll(".dlbtn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        downloadText(btn.getAttribute("data-name"), SRC[btn.getAttribute("data-src")]);
+      });
+    });
+
+    // ---- copy fallback ----
+    function flash(id, msg){
+      var s=document.getElementById(id); if(!s) return;
+      s.textContent=msg; clearTimeout(s._t); s._t=setTimeout(function(){ s.textContent=""; }, 2600);
+    }
+    function copyText(text, statusId){
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ flash(statusId,"Copied ✓"); }, function(){ legacyCopy(text, statusId); });
+      } else { legacyCopy(text, statusId); }
+    }
+    function legacyCopy(text, statusId){
+      var ta=document.createElement("textarea");
+      ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand("copy"); flash(statusId,"Copied ✓"); } catch(e){ flash(statusId,"Press Ctrl/Cmd-C"); }
+      ta.remove();
+    }
+    document.querySelectorAll(".copybtn").forEach(function(btn){
+      btn.addEventListener("click", function(){ copyText(SRC[btn.getAttribute("data-src")], btn.getAttribute("data-status")); });
+    });
+    document.getElementById("copy-resume").addEventListener("click", function(){
+      copyText(document.getElementById("resume-line").textContent, "copy-resume-status");
+    });
+  })();
+</script>
+</body>
+</html>
