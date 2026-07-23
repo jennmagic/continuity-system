@@ -197,6 +197,19 @@ This is the highest-value file, because "we chose X because Y, and avoided Z" is
 
 ---
 
+## VERSION CONTROL — keep the work safe (do this automatically)
+
+Treat git as part of the memory system: it makes any overwrite recoverable, and lets more than one tool or person work on the project without silently clobbering each other. Do this without being asked.
+
+On a new project, once the files exist:
+1. **Add a `.gitignore` that excludes secrets and junk before the first commit** — at minimum `.env`, `*.key`, `*.pem`, credential files, `.DS_Store`, and large build/output binaries. Never commit API keys, tokens, or passwords.
+2. Run `git init` and make an initial commit.
+3. Commit again at each checkpoint or completed phase (the same moments you update `STATE.md`), with a short message.
+
+Keep commits **local by default**. Do not push to a remote (GitHub, etc.) automatically — pushing publishes the work, so push only when the user asks. If the project is already under git, just keep committing at checkpoints; never re-initialize.
+
+---
+
 ## FIRST RUN — BOOTSTRAP
 
 When the user says to set up the continuity system (or when these files do not yet exist):
